@@ -18,19 +18,9 @@
     "test": "jest --config=config/jest.config.ts --passWithNoTests",
     "coverage": "npm run test -- --coverage"
   },
-  "keywords": [
-    "remix",
-    "remix-auth",
-    "auth",
-    "authentication",
-    "strategy"
-  ],
+  "keywords": ["remix", "remix-auth", "auth", "authentication", "strategy"],
   "license": "MIT",
-  "files": [
-    "build",
-    "package.json",
-    "README.md"
-  ],
+  "files": ["build", "package.json", "README.md"],
   "peerDependencies": {
     "@remix-run/server-runtime": "^1.0.0"
   },

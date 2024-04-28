@@ -1,7 +1,7 @@
-import type { Config } from "@jest/types";
 // eslint-disable-next-line unicorn/prefer-node-protocol
 // eslint-disable-next-line unicorn/import-style
-import * as path from "path";
+import * as path from "node:path";
+import type { Config } from "@jest/types";
 
 const config: Config.InitialOptions = {
   verbose: Boolean(process.env.CI),

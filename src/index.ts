@@ -1,9 +1,9 @@
+import type { StrategyVerifyCallback } from "remix-auth";
 import {
   OAuth2Strategy,
   type OAuth2StrategyVerifyParams,
 } from "remix-auth-oauth2";
 import type { GuildedStrategyOptions, GuildedUser } from "./types";
-import type { StrategyVerifyCallback } from "remix-auth";
 
 const AUTHLINK = "https://authlink.app";
 const API_V = "1";
