@@ -1,37 +1,6 @@
-# Remix Auth - Strategy Template
+# remix-auth-guilded
 
-> A template for creating a new Remix Auth strategy.
-
-If you want to create a new strategy for Remix Auth, you could use this as a template for your repository.
-
-The repo installs the latest version of Remix Auth and do the setup for you to have tests, linting and typechecking.
-
-## How to use it
-
-1. In the `package.json` change `name` to your strategy name, also add a description and ideally an author, repository and homepage keys.
-2. In `src/index.ts` change the `MyStrategy` for the strategy name you want to use.
-3. Implement the strategy flow inside the `authenticate` method. Use `this.success` and `this.failure` to correctly send finish the flow.
-4. In `tests/index.test.ts` change the tests to use your strategy and test it. Inside the tests you have access to `jest-fetch-mock` to mock any fetch you may need to do.
-5. Once you are ready, set the secrets on Github
-   - `NPM_TOKEN`: The token for the npm registry
-   - `GIT_USER_NAME`: The git username you want the bump workflow to use in the commit.
-   - `GIT_USER_EMAIL`: The email you want the bump workflow to use in the commit.
-
-## Scripts
-
-- `build`: Build the project for production using the TypeScript compiler (strips the types).
-- `typecheck`: Check the project for type errors, this also happens in build but it's useful to do in development.
-- `lint`: Runs ESLint against the source codebase to ensure it pass the linting rules.
-- `test`: Runs all the test using Jest.
-
-## Documentations
-
-To facilitate creating a documentation for your strategy, you can use the following Markdown
-
-```markdown
-# Strategy Name
-
-<!-- Description -->
+remix-auth strategy for Authlink, an OAuth2 provider for Guilded. If you prefer Next.js, see [next-auth-guilded](https://github.com/GuildedAPI/next-auth-guilded).
 
 ## Supported runtimes
 
@@ -40,9 +9,99 @@ To facilitate creating a documentation for your strategy, you can use the follow
 | Node.js    | ✅          |
 | Cloudflare | ✅          |
 
-<!-- If it doesn't support one runtime, explain here why -->
-
 ## How to use
 
-<!-- Explain how to use the strategy, here you should tell what options it expects from the developer when instantiating the strategy -->
+### Create an Authlink application
+
+Visit https://authlink.app/dev/apps, press "new", and connect your Guilded bot to finalize the application. Add a redirect URI and note down your client ID and secret (you will need to press "reset" to generate a secret). You may also configure a vanity code with preconfigured options, though beware that these can be overridden.
+
+### Create session storage
+
+```ts
+// app/session.server.ts
+import { createCookieSessionStorage } from "@remix-run/node";
+
+export const sessionStorage = createCookieSessionStorage({
+  cookie: {
+    name: "_session",
+    sameSite: "lax",
+    path: "/",
+    httpOnly: true,
+    secrets: ["s3cr3t"],
+    secure: process.env.NODE_ENV === "production",
+  },
+});
+
+export const { getSession, commitSession, destroySession } = sessionStorage;
 ```
+
+### Create the strategy instance
+
+```ts
+// app/auth.server.ts
+import { Authenticator } from "remix-auth";
+import { GuildedStrategy, type GuildedUser } from "remix-auth-guilded";
+import { sessionStorage } from "~/session.server";
+
+export interface GuildedAuth {
+  id: string;
+  name: string;
+  avatar: string | null;
+  banner: string | null;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export const auth = new Authenticator<DiscordAuth>(sessionStorage);
+
+const guildedStrategy = new GuildedStrategy(
+  {
+    clientId: "YOUR_CLIENT_ID",
+    clientSecret: "YOUR_CLIENT_SECRET",
+    redirectUri: "https://example.com/auth/guilded/callback",
+    scope: ["identify"],
+  },
+  // OR { clientId, clientSecret, vanity: "..." }
+  async ({
+    accessToken,
+    refreshToken,
+    extraParams,
+    profile,
+  }): Promise<DiscordAuth> => {
+    // This package does not fetch the user for you
+    const user = await this.getUser(accessToken)
+
+    // This goes into your sessionStorage and is also returned by
+    // this method if successRedirect is not provided
+    return {
+      id: user.id,
+      name: user.name,
+      avatar: user.avatar,
+      banner: user.banner,
+      accessToken,
+      refreshToken,
+    };
+  },
+);
+
+auth.use(guildedStrategy);
+```
+
+### Use in a loader
+
+```ts
+// app/routes/auth.guilded.callback.tsx
+import type { LoaderFunction } from "@remix-run/node";
+import { auth } from "~/auth.server";
+
+export const loader: LoaderFunction = ({ request }) => {
+  return auth.authenticate("guilded", request, {
+    successRedirect: "/dashboard",
+    failureRedirect: "/login",
+  });
+};
+```
+
+## Attribution
+
+Design elements & examples from [remix-auth-discord](https://github.com/JonnyBnator/remix-auth-discord).
